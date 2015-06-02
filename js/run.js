@@ -1,14 +1,21 @@
 /* exported run */
 
+var prevTime = 0;
 function update() {
 
 	// uniformsInput.time.value = clock.getElapsedTime();
-	//
-	FBOC.step();
 
-	//
+	// FBOC.step();
+	var currTime = clock.getElapsedTime();
+	if ( currTime - prevTime > 0.1 && FBOC.currentStep <= FBOC.totalSortStep ) {
+		FBOC.stepPerUpdate( 1 );
+		prevTime = currTime;
+	}
+
 	// psys.setPositionBuffer( FBOC.getPass( 'positionPass' ).getRenderTarget() );
 	// psys.material.uniforms.velocityBuffer.value = FBOC.getPass( 'velocityPass' ).getRenderTarget();
+	FBOC.stepPerSecond = FBOC.currentStep / clock.getElapsedTime();
+	updateGuiDisplay();
 
 }
 

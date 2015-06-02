@@ -45,7 +45,8 @@ shaderLoader.loadMultiple( SHADER_CONTAINER, {
 	velocity: 'shaders/velocity.frag',
 	position: 'shaders/position.frag',
 
-	sort: 'shaders/sort.frag'
+	sort: 'shaders/sort.frag',
+	mergeSort: 'shaders/mergeSort.frag'
 
 } );
 

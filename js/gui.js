@@ -10,7 +10,9 @@ function initGui() {
 	gui.width = 300;
 
 	gui_display = gui.addFolder( 'Display' );
-		gui_display.autoListen = false;
+	gui_display.autoListen = false;
+		gui_display.add( FBOC, 'currentStep' ).name( 'FBO Steps' );
+		gui_display.add( FBOC, 'stepPerSecond' ).name( 'FBO SPS' );
 
 	gui_settings = gui.addFolder( 'Settings' );
 		gui_settings.addColor( sceneSettings, 'bgColor' ).name( 'Background' );

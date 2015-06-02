@@ -34,6 +34,12 @@ function FBOCompositor( renderer, bufferSize, passThruVertexShader ) {
 	} );
 
 	this.passes = [];
+	this.currentStep = 0;
+	this.stepPerSecond = 0;
+
+	this.totalSortStep = ( Math.log2( this.bufferSize*this.bufferSize ) * ( Math.log2( this.bufferSize*this.bufferSize ) + 1 ) ) / 2;
+	this.sortPass = -1;
+	this.sortStage = -1;
 
 }
 
@@ -118,7 +124,7 @@ FBOCompositor.prototype = {
 
 	step: function () {
 
-		for ( var i = 0; i < this.passes.length; i++ ) {
+		for ( var i = 0; i < this.passes.length; i ++ ) {
 
 			this.updatePassDependencies();
 			var currPass = this.passes[ i ];
@@ -127,6 +133,42 @@ FBOCompositor.prototype = {
 			currPass.swapBuffer();
 
 
+		}
+		this.currentStep ++;
+
+	},
+
+	stepPerUpdate: function ( numStep ) {
+
+		for( var s = 0; s < numStep; s ++ ) {
+
+			var sortFBO = this.getPass( 'sortPass' ).uniforms;
+
+			this.sortPass --;
+	      if (this.sortPass  < 0) {
+				this.sortStage ++;
+				this.sortPass  = this.sortStage;
+	      }
+
+			console.log( 'Stage:', this.sortStage, 1 << this.sortStage );
+			console.log( 'Pass:', this.sortPass, 1 << this.sortPass );
+			console.log( '------------------------------------------' );
+
+			sortFBO.pass.value  = 1 << this.sortPass;
+			sortFBO.stage.value = 1 << this.sortStage;
+
+
+			for ( var i = 0; i < this.passes.length; i ++ ) {
+
+					this.updatePassDependencies();
+					var currPass = this.passes[ i ];
+					this._renderPass( currPass.getShader(), currPass.getRenderTarget() );
+					// hud.setInputTexture( FBOC.getPass( 'sortPass' ).getRenderTarget() );
+					currPass.swapBuffer();
+
+
+			}
+			this.currentStep ++;
 		}
 
 	}
@@ -163,6 +205,14 @@ function FBOPass( name, vertexShader, fragmentSahader, bufferSize ) {
 		evenPass: {
 			type: 'f',
 			value: this.currentBuffer
+		},
+		stage: {
+			type: 'f',
+			value: -1
+		},
+		pass: {
+			type: 'f',
+			value: -1
 		}
 	};
 

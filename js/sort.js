@@ -13,8 +13,8 @@ Sort.prototype.generateDataTexture = function () {
 
 
 		data[ i + 0 ] = Math.random();
-		data[ i + 1 ] = Math.random();
-		data[ i + 2 ] = Math.random();
+		data[ i + 1 ] = 0.0;
+		data[ i + 2 ] = 0.0;
 		data[ i + 3 ] = 1.0;
 
 	}

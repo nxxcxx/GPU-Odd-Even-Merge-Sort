@@ -27,9 +27,9 @@ function main() {
 	cube.material.color.set( 0xffffff );
 	scene.add( cube );
 
-	var sampleSize = 16;
+	sampleSize = 256;
 	FBOC = new FBOCompositor( renderer, sampleSize, SHADER_CONTAINER.passVert );
-	FBOC.addPass( 'sortPass', SHADER_CONTAINER.sort );
+	FBOC.addPass( 'sortPass', SHADER_CONTAINER.mergeSort );
 
 	SO = new Sort( sampleSize );
 	var sortSample = SO.generateDataTexture();

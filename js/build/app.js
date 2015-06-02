@@ -46,7 +46,8 @@ shaderLoader.loadMultiple( SHADER_CONTAINER, {
 	velocity: 'shaders/velocity.frag',
 	position: 'shaders/position.frag',
 
-	sort: 'shaders/sort.frag'
+	sort: 'shaders/sort.frag',
+	mergeSort: 'shaders/mergeSort.frag'
 
 } );
 
@@ -153,7 +154,9 @@ function initGui() {
 	gui.width = 300;
 
 	gui_display = gui.addFolder( 'Display' );
-		gui_display.autoListen = false;
+	gui_display.autoListen = false;
+		gui_display.add( FBOC, 'currentStep' ).name( 'FBO Steps' );
+		gui_display.add( FBOC, 'stepPerSecond' ).name( 'FBO SPS' );
 
 	gui_settings = gui.addFolder( 'Settings' );
 		gui_settings.addColor( sceneSettings, 'bgColor' ).name( 'Background' );
@@ -207,8 +210,8 @@ Sort.prototype.generateDataTexture = function () {
 
 
 		data[ i + 0 ] = Math.random();
-		data[ i + 1 ] = Math.random();
-		data[ i + 2 ] = Math.random();
+		data[ i + 1 ] = 0.0;
+		data[ i + 2 ] = 0.0;
 		data[ i + 3 ] = 1.0;
 
 	}
@@ -259,6 +262,12 @@ function FBOCompositor( renderer, bufferSize, passThruVertexShader ) {
 	} );
 
 	this.passes = [];
+	this.currentStep = 0;
+	this.stepPerSecond = 0;
+
+	this.totalSortStep = ( Math.log2( this.bufferSize*this.bufferSize ) * ( Math.log2( this.bufferSize*this.bufferSize ) + 1 ) ) / 2;
+	this.sortPass = -1;
+	this.sortStage = -1;
 
 }
 
@@ -343,7 +352,7 @@ FBOCompositor.prototype = {
 
 	step: function () {
 
-		for ( var i = 0; i < this.passes.length; i++ ) {
+		for ( var i = 0; i < this.passes.length; i ++ ) {
 
 			this.updatePassDependencies();
 			var currPass = this.passes[ i ];
@@ -352,6 +361,42 @@ FBOCompositor.prototype = {
 			currPass.swapBuffer();
 
 
+		}
+		this.currentStep ++;
+
+	},
+
+	stepPerUpdate: function ( numStep ) {
+
+		for( var s = 0; s < numStep; s ++ ) {
+
+			var sortFBO = this.getPass( 'sortPass' ).uniforms;
+
+			this.sortPass --;
+	      if (this.sortPass  < 0) {
+				this.sortStage ++;
+				this.sortPass  = this.sortStage;
+	      }
+
+			console.log( 'Stage:', this.sortStage, 1 << this.sortStage );
+			console.log( 'Pass:', this.sortPass, 1 << this.sortPass );
+			console.log( '------------------------------------------' );
+
+			sortFBO.pass.value  = 1 << this.sortPass;
+			sortFBO.stage.value = 1 << this.sortStage;
+
+
+			for ( var i = 0; i < this.passes.length; i ++ ) {
+
+					this.updatePassDependencies();
+					var currPass = this.passes[ i ];
+					this._renderPass( currPass.getShader(), currPass.getRenderTarget() );
+					// hud.setInputTexture( FBOC.getPass( 'sortPass' ).getRenderTarget() );
+					currPass.swapBuffer();
+
+
+			}
+			this.currentStep ++;
 		}
 
 	}
@@ -388,6 +433,14 @@ function FBOPass( name, vertexShader, fragmentSahader, bufferSize ) {
 		evenPass: {
 			type: 'f',
 			value: this.currentBuffer
+		},
+		stage: {
+			type: 'f',
+			value: -1
+		},
+		pass: {
+			type: 'f',
+			value: -1
 		}
 	};
 
@@ -676,9 +729,9 @@ function main() {
 	cube.material.color.set( 0xffffff );
 	scene.add( cube );
 
-	var sampleSize = 16;
+	sampleSize = 256;
 	FBOC = new FBOCompositor( renderer, sampleSize, SHADER_CONTAINER.passVert );
-	FBOC.addPass( 'sortPass', SHADER_CONTAINER.sort );
+	FBOC.addPass( 'sortPass', SHADER_CONTAINER.mergeSort );
 
 	SO = new Sort( sampleSize );
 	var sortSample = SO.generateDataTexture();
@@ -693,15 +746,22 @@ function main() {
 // Source: js/run.js
 /* exported run */
 
+var prevTime = 0;
 function update() {
 
 	// uniformsInput.time.value = clock.getElapsedTime();
-	//
-	FBOC.step();
 
-	//
+	// FBOC.step();
+	var currTime = clock.getElapsedTime();
+	if ( currTime - prevTime > 0.1 && FBOC.currentStep <= FBOC.totalSortStep ) {
+		FBOC.stepPerUpdate( 1 );
+		prevTime = currTime;
+	}
+
 	// psys.setPositionBuffer( FBOC.getPass( 'positionPass' ).getRenderTarget() );
 	// psys.material.uniforms.velocityBuffer.value = FBOC.getPass( 'velocityPass' ).getRenderTarget();
+	FBOC.stepPerSecond = FBOC.currentStep / clock.getElapsedTime();
+	updateGuiDisplay();
 
 }
 
